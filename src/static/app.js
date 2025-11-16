@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      // Reset activity select to default option to avoid duplicates
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -30,20 +32,64 @@ document.addEventListener("DOMContentLoaded", () => {
             <ul class="participants-list">
               ${
                 details.participants.length > 0
-                  ? details.participants.map((email) => `<li>${email}</li>`).join("")
+                    ? details.participants
+                    .map(
+                      (email) =>
+                        `<li class="participant-item">${email} <button class="delete-participant" data-activity="${encodeURIComponent(
+                          name
+                        )}" data-email="${encodeURIComponent(email)}" title="Unregister">✖</button></li>`
+                    )
+                    .join("")
                   : '<li class="no-participants">No participants yet</li>'
               }
             </ul>
           </div>
         `;
 
-        activitiesList.appendChild(activityCard);
+          activitiesList.appendChild(activityCard);
 
-        // Add option to select dropdown
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        activitySelect.appendChild(option);
+          // Attach delete handlers for this card's buttons
+          activityCard.querySelectorAll('.delete-participant').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+              e.preventDefault();
+              const activityName = decodeURIComponent(btn.dataset.activity);
+              const email = decodeURIComponent(btn.dataset.email);
+              if (!confirm(`Unregister ${email} from ${activityName}?`)) return;
+              try {
+                const res = await fetch(
+                  `/activities/${encodeURIComponent(activityName)}/signup?email=${encodeURIComponent(email)}`,
+                  { method: 'DELETE' }
+                );
+                const data = await res.json();
+                if (res.ok) {
+                  messageDiv.textContent = data.message;
+                  messageDiv.className = 'success';
+                  messageDiv.classList.remove('hidden');
+                  setTimeout(() => messageDiv.classList.add('hidden'), 5000);
+                  // Refresh the activities and select options
+                  activitySelect.innerHTML = '<option value="">-- Select activity --</option>';
+                  fetchActivities();
+                } else {
+                  messageDiv.textContent = data.detail || 'Failed to unregister';
+                  messageDiv.className = 'error';
+                  messageDiv.classList.remove('hidden');
+                  setTimeout(() => messageDiv.classList.add('hidden'), 5000);
+                }
+              } catch (err) {
+                console.error('Error unregistering:', err);
+                messageDiv.textContent = 'Failed to unregister. Please try again.';
+                messageDiv.className = 'error';
+                messageDiv.classList.remove('hidden');
+                setTimeout(() => messageDiv.classList.add('hidden'), 5000);
+              }
+            });
+          });
+
+          // Add option to select dropdown
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          activitySelect.appendChild(option);
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
@@ -141,6 +187,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Refresh activities list so the new participant appears immediately
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";

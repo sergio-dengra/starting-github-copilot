@@ -159,7 +159,7 @@ footer {
 }
 
 .participants-list {
-  list-style-position: inside;
+  list-style: none;
   margin: 0;
   padding-left: 0;
 }
@@ -168,6 +168,25 @@ footer {
   padding: 0.4rem 0;
   color: #333;
   font-size: 0.9rem;
+}
+
+.participant-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.delete-participant {
+  background: transparent;
+  border: none;
+  color: #c62828;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 6px;
+}
+
+.delete-participant:hover {
+  color: #8e0000;
 }
 
 .participants-list li:hover {
